@@ -1,0 +1,4 @@
+cards/
+dependencies/
+__pycache__/
+scryfall-default-cards.json
