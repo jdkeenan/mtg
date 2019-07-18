@@ -2,3 +2,4 @@ cards/
 dependencies/
 __pycache__/
 scryfall-default-cards.json
+frozen_east_text_detection.pb
