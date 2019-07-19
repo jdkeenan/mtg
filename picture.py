@@ -1,6 +1,8 @@
 from kivy.uix.scatter import Scatter
 from kivy.uix.boxlayout import BoxLayout
 import random
+from kivy.uix.popup import Popup
+from kivy.uix.button import Button
 
 class Picture(Scatter, object):
     def __init__(self, source, parent_object, card, assigned_id=None, opponent=False):
@@ -14,10 +16,24 @@ class Picture(Scatter, object):
         self.opponent = opponent
         super().__init__()
 
-    def pre__on_touch_down(self, event):
-        if not self.collide_point(*event.pos):
-            return
-        print(event)
+    def delete(self, event):
+        try:
+            self.parent.remove_widget(self)
+        except:
+            pass
+
+    # def pre__on_touch_down(self, event):
+    def pre__on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            (pos_x, pos_y) = touch.pos
+            if touch.is_double_tap:
+                self.rotation = 0 if self.rotation == 90 else 90
+            if touch.button == 'right':
+                OK_button = Button(text='OK')
+                popup = Popup(content=OK_button, title='delete card?', pos=(pos_x, pos_y), size_hint=(None,None), size=(200,200))
+                OK_button.bind(on_press=self.delete)
+                popup.open()
+                # return True
 
     def post__on_touch_down(self, event):
         if not self.collide_point(*event.pos):
@@ -33,9 +49,6 @@ class Picture(Scatter, object):
             self.parent_object.table.move_card(self.card_id, 'attacking_cards', event.pos)
         print(event)
         print("card moved")
-
-    def delete(self):
-        self.parent.remove_widget(self)
 
     def __getattribute__(self, name):
         if name.startswith('pre__') or name.startswith('post__'): 
