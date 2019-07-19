@@ -37,6 +37,11 @@ class CardBounding:
         self.override = False
         return pos
 
+    def point_in_box(self, pos):
+        if (pos[0] > self.top_left[0] and pos[0] < self.bottom_right[0] and 
+            pos[1] > self.top_left[1] and pos[1] < self.top_left[1]): return True
+        return False
+
     @property
     def width(self):
         if self.override: return self.override_scale * self.max_size
@@ -56,12 +61,16 @@ class Table:
         self.bounding_boxes = {
             "attacking_cards": CardBounding(), 
             "mana_cards": CardBounding(),
-            "monsters_cards": CardBounding()
+            "monsters_cards": CardBounding(),
+            "hand": CardBounding()
         }
 
-    def check_position(self, pos): 
-        # returns a position closest on the playing field:
-        pass
+    def check_position(self, card_id, pos):
+        for target in self.bounding_boxes.keys():
+            if self.bounding_boxes[target].point_in_box(pos):
+                self.move_card(card_id, target, pos)
+        else:
+            self.move_card(card_id, 'hand', pos)
 
     def broadcast_cards(self):
         # broadcast card is played to position
@@ -131,10 +140,7 @@ class Table:
 
     def animate_cards(self, destination):
         positions = self.bounding_boxes[destination].card_positions(len(getattr(self, destination)))
-        print(positions)
         for ind, i in enumerate(getattr(self, destination)):
-            print("animate")
-            print(i, (positions[ind], self.bounding_boxes[destination].center_y))
             animation = Animation(pos=(positions[ind], self.bounding_boxes[destination].center_y), t='out_back')
             if self.picture_lookup[i].scale != self.bounding_boxes[destination].scale:
                 animation &= Animation(scale=self.bounding_boxes[destination].scale, t='in_out_cubic')
