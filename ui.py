@@ -20,6 +20,7 @@ from kivy.uix.scatter import Scatter
 from kivy.uix.label import Label
 from kivy.input.shape import ShapeRect
 from kivy.uix.label import Label
+from kivy.uix.behaviors import DragBehavior
 
 from client import client_connection
 from kivy.uix.button import Button
@@ -62,6 +63,8 @@ class Picture(Scatter, object):
             return func2
         return object.__getattribute__(self, name)
 
+class DragLabel(DragBehavior, Label):
+        pass
 
 class PicturesApp(App):
     conn = client_connection()
@@ -76,10 +79,12 @@ class PicturesApp(App):
     def create_card(self, name):
         card = card_creation(self.card_database, name)
         picture = Picture(source=card.png)
-        self.root.add_widget(picture)
+        serlf.root.add_widget(picture)
 
     def create_onepone(self, event=None):
-        opo = Picture(source='opo.png')
+        opo = Label(text='Hello world', font_size='20sp')
+
+        # opo = Picture(source='opo.png')
         self.root.add_widget(opo)
 
     def create_npn(self, name):
