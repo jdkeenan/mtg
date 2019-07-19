@@ -42,6 +42,10 @@ class card_creation:
             url = self.information['image_uris'][image]
             r = requests.get(url, allow_redirects=True)
             if r.status_code != 200:
+                if name + '|' not in self.card_database.card_lookup:
+                    print("failed to load card")
+                    return
+                self.information = self.card_database.card_lookup[name + '|']
                 return self.download_card(name + '|')
             open(os.path.join(self.path, image) + self.ending(image), 'wb').write(r.content)
 
@@ -63,9 +67,10 @@ class card_creation:
 if __name__ == '__main__':
     name = 'Nicol Bolas, Dragon-God'
     card_database = card_database_creation()
-    card = card_creation(card_database, 'colossus of sarda')
-    card = card_creation(card_database, 'OjotaiSoalofWlnter')
+    card = card_creation(card_database, 'sire of stagnation')
+    print('done')
+    # card = card_creation(card_database, 'OjotaiSoalofWlnter')
 
-    card = card_creation(card_database, name)
-    cv2.imshow('img', card.png)
+    # card = card_creation(card_database, name)
+    cv2.imshow('img', cv2.imread(card.png))
     cv2.waitKey(0)

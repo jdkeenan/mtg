@@ -18,36 +18,15 @@ from card_search import card_database_creation, card_creation
 from kivy.uix.boxlayout import BoxLayout
 from client import client_connection
 from cv_card_reader import cv_card_reader
-
-class Picture(Scatter, object):
-    def __init__(self, source):
-        self.source = source
-        super().__init__()
-
-    def pre__on_touch_down(self, event):
-        print(event)
-
-    def post__on_touch_down(self, event):
-        print("post")
-
-    def __getattribute__(self, name):
-        if name.startswith('pre__') or name.startswith('post__'): 
-            return object.__getattribute__(self, name)
-        if hasattr(self, 'pre__' + name) or hasattr(self, 'post__' + name):
-            func = object.__getattribute__(self, name)
-            def func2(*args, **kwargs):
-                if hasattr(self, 'pre__' + name) and object.__getattribute__(self, 'pre__' + name)(*args, **kwargs) is not None: 
-                    return
-                func(*args, **kwargs)
-                if hasattr(self, 'post__' + name) and object.__getattribute__(self, 'post__' + name)(*args, **kwargs): pass
-            return func2
-        return object.__getattribute__(self, name)
-
+import random
+from table import Table
+from picture import Picture
 
 class PicturesApp(App):
     conn = client_connection()
     card_database = card_database_creation()
     card_reader = cv_card_reader()
+    table = None
 
     def wrapper_create_card(self, name):
         self.create_card(name.text)
@@ -61,10 +40,9 @@ class PicturesApp(App):
         print(name)
         self.create_card(name)
 
-    def create_card(self, name):
-        card = card_creation(self.card_database, name)
-        picture = Picture(source=card.png)
-        self.root.add_widget(picture)
+    def create_card(self, name, summon_position=None, assigned_id=None):
+        # card = card_creation(self.card_database, name)
+        self.table.create_card(name=name, summon_position=None, assigned_id=None)
 
     def app_func(self):
         self.other_task = asyncio.ensure_future(self.client_connection())
@@ -78,6 +56,7 @@ class PicturesApp(App):
         return asyncio.gather(run_wrapper(), self.other_task)
 
     def build(self):
+        self.table = Table(self)
         textinput = TextInput(text='Card Name', multiline=False)
         textinput.bind(on_text_validate=self.wrapper_create_card)
         chatclient = TextInput(text='Chat', multiline=False)
@@ -94,6 +73,9 @@ class PicturesApp(App):
     async def client_connection(self):
         try:
             await self.conn.establish_connection()
+            self.conn.writer_tcp('join_a_room mtg mtg')
+            await asyncio.sleep(1)
+            self.conn.writer_tcp('username mtg_test')
             await self.conn.reader_tcp(self.incoming_message)
         except asyncio.CancelledError as e:
             pass
@@ -102,6 +84,8 @@ class PicturesApp(App):
         text = " ".join(message.split(' ')[1:])
         if text.startswith('create_a_card'):
             self.create_card(" ".join(text.split(' ')[1:]))
+        if text.startswith('current_cards'):
+            self.table.opponent_update(message.split(' ')[0][:-1], " ".join(text.split(' ')[1:]))
 
 
 if __name__ == '__main__':

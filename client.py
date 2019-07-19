@@ -24,6 +24,7 @@ class client_connection:
         self.reader, self.writer = await asyncio.open_connection(self.IP, 8080)
 
     def writer_tcp(self, message):
+        print("outgoing: {}".format(message))
         self.writer.write(message.encode())
 
     async def reader_tcp(self, call_back):

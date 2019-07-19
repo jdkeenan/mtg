@@ -148,14 +148,10 @@ class cv_card_reader:
                     for j in boxes:
                         startX, startY, endX, endY = [int(i) for i in j]
                         cv2.rectangle(orig, (startX, startY), (endX, endY), (0, 0, 255), 2)
-                boxes[:,0] *= W/480
-                boxes[:,2] *= W/480
-                boxes[:,1] *= H/320
-                boxes[:,3] *= H/320
-                boxes[:,0] -= 10 * 2
-                boxes[:,1] -= 15 * 2
-                boxes[:,2] += 10 * 2
-                boxes[:,3] += 15 * 2
+                boxes[:] *= [W/480, H/320] * 2 
+                change_array = [-10, -15, 10, 15]
+                boxes[:] += [i * 2 for i in change_array]
+                # combine boxes that are overlapping
                 counter = 1
                 while True:
                     if len(boxes) < counter + 1: break
@@ -165,32 +161,33 @@ class cv_card_reader:
                     for i in range(2,4): boxes[0][i] = max(boxes[0][i], boxes[counter][i])
                     counter += 1
 
-                boxes[:,0] += 10
-                boxes[:,1] += 15
-                boxes[:,2] -= 10
-                boxes[:,3] -= 15
+                boxes[:] -= change_array
                 for i in range(4):
                     max_value = H if i % 2 else W
                     boxes[0][i] = min(max(boxes[0][i], 0), max_value)
                 startX, startY, endX, endY = [int(i) for i in boxes[0]]
                 crop_img = orig[startY:endY, startX:endX]
                 if show: cv2.rectangle(orig, (startX, startY), (endX, endY), (0, 255, 0), 2)
-                # text = pytesseract.image_to_string(crop_img, config=self.config)
                 data = pytesseract.image_to_data(crop_img, config=self.config, output_type=Output.DICT)
                 text = ""
                 for i in range(len(data["conf"])):
-                    if int(data['conf'][i]) > 50: text += data['text'][i]
+                    if int(data['conf'][i]) > 10: print(data['conf'][i], data['text'][i])
+                    if int(data['conf'][i]) > 30: text += data['text'][i]
                 text = self.regex.sub('', text.lower())
-                if len(text) == 0: continue
+                if len(text) <= 2: continue
                 text_buffer.append(text)
             if show:
                 cv2.imshow('img', orig)
                 cv2.waitKey(1)
             if len(text_buffer) >= 2:
-                print(len(text_buffer))
-                ratio = levenshtein_ratio_and_distance(text_buffer[-1], difflib.get_close_matches(text_buffer[-1], text_buffer)[0])
+                print(text_buffer[:-1], text_buffer[-1])
+                closest = difflib.get_close_matches(text_buffer[-1], text_buffer[:-1])
+                if len(closest) == 0:
+                    continue
+                ratio = levenshtein_ratio_and_distance(text_buffer[-1], closest[0])
                 if ratio > 0.8:
-                    if not show: return text_buffer[-1]
+                    if not show:
+                        return closest[0] if len(closest[0]) > len(text_buffer[-1]) else text_buffer[-1]
                     print(text_buffer[-1])
                     text_buffer = []
                 # text_buffer.pop(0)
