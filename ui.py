@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 
 os.environ['KIVY_EVENTLOOP'] = 'asyncio'
 import kivy
@@ -21,34 +22,53 @@ from kivy.uix.label import Label
 from kivy.input.shape import ShapeRect
 from kivy.uix.label import Label
 from kivy.uix.behaviors import DragBehavior
+from kivy.uix.popup import Popup
+from kivy.clock import Clock
 
 from client import client_connection
 from kivy.uix.button import Button
 from kivy.uix.bubble import Bubble
 
 
-
 class Picture(Scatter, object):
 
-    def __init__(self, source):
+    def __init__(self, source, *args, **kwargs):
         self.source = source
-        super().__init__()
+        super().__init__(*args, **kwargs)
+        self.do_rotation=False
+        self.do_scale=False
 
+    def delete(self, instance):
+        try:
+            self.parent.remove_widget(self)
+        except:
+            pass
+        
     def pre__on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
+            (pos_x, pos_y) = touch.pos
             if touch.is_double_tap:
                 self.rotation = 0 if self.rotation == 90 else 90
             if touch.button == 'right':
-                self.parent.remove_widget(self)
+                OK_button = Button(text='OK')
+                popup = Popup(content=OK_button, title='delete card?', pos=(pos_x, pos_y), size_hint=(None,None), size=(200,200))
+                OK_button.bind(on_press=self.delete)
+                popup.open()
+                return True
 
-
-
-    # def post__on_touch_down(self, event):
+    # def post__on_touch_down(self, touch):
     #     if self.collide_point(*touch.pos):
-    #         self.scale = 1.5
-    def on_touch_up(self, touch):
+            
+    # def pre__on_touch_up(self, touch):
+    #     endtime = time.time()
+    #     if endtime-starttime < 4:
+    #         print("pre")
+
+    def post__on_touch_up(self, touch):
         if self.collide_point(*touch.pos):
-            self.scale = 1.0
+            self.scale = 0.5
+
+
 
     def __getattribute__(self, name):
         if name.startswith('pre__') or name.startswith('post__'): 
@@ -63,12 +83,14 @@ class Picture(Scatter, object):
             return func2
         return object.__getattribute__(self, name)
 
-class DragLabel(DragBehavior, Label):
-        pass
+# class DragLabel(DragBehavior, Label):
+#         pass
 
 class PicturesApp(App):
     conn = client_connection()
     card_database = card_database_creation()
+
+
 
     def wrapper_create_card(self, name):
         self.create_card(name.text)
@@ -78,13 +100,13 @@ class PicturesApp(App):
 
     def create_card(self, name):
         card = card_creation(self.card_database, name)
+        # scatter = Scatter(do_rotation=False, do_scale=False)
         picture = Picture(source=card.png)
-        serlf.root.add_widget(picture)
+        self.root.add_widget(picture)
 
     def create_onepone(self, event=None):
-        opo = Label(text='Hello world', font_size='20sp')
-
-        # opo = Picture(source='opo.png')
+        # opo = Label(text='Hello world', font_size='20sp')
+        opo = Picture(source='opo.png')
         self.root.add_widget(opo)
 
     def create_npn(self, name):
@@ -115,7 +137,7 @@ class PicturesApp(App):
         self.root.add_widget(layout)
 
         buttonlayout = FloatLayout(size_hint=(None, None), height=50)
-        button_1p1 = Button(text="+1/+1", pos_hint={'center_x': 0.5, 'center_y': 22}, size_hint = (1, 1))
+        button_1p1 = Button(text="+1/+1", pos_hint={'center_x': 0.5, 'center_y': 22}, size_hint = (None,None))
         button_1p1.bind(on_press = self.create_onepone)
         buttonlayout.add_widget(button_1p1)
         
