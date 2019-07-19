@@ -1,4 +1,5 @@
 from kivy.uix.scatter import Scatter
+from kivy.uix.boxlayout import BoxLayout
 import random
 
 class Picture(Scatter, object):
@@ -14,16 +15,22 @@ class Picture(Scatter, object):
         super().__init__()
 
     def pre__on_touch_down(self, event):
-        # self.parent_object.table(self.card_id, 'attacking_cards')
-        if not self.opponent:
-            self.parent_object.table(self.card_id, 'attacking_cards')
+        if not self.collide_point(*event.pos):
+            return
+        print(event)
 
     def post__on_touch_down(self, event):
+        if not self.collide_point(*event.pos):
+            return
         print("post")
 
     # def pre__on_touch_up(self, event):
     #     print('up')
     def post__on_touch_up(self, event):
+        if not self.collide_point(*event.pos):
+            return
+        if not self.opponent:
+            self.parent_object.table.move_card(self.card_id, 'attacking_cards', event.pos)
         print(event)
         print("card moved")
 

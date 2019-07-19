@@ -1,17 +1,63 @@
 import ast
 from card_search import card_database_creation, card_creation
 from picture import Picture
+from kivy.animation import Animation
+
+class CardBounding:
+    def __init__(self):
+        self.top_left = None
+        self.bottom_right = None
+        self.max_size = 400
+        self.scale = 1 # includes 10% margin
+        self.center_x = None
+        self.center_y = None
+        self.override = False
+        self.override_scale = 1
+        self.set_box([0,0], [1000,1000])
+
+    def set_box(self, top_left, bottom_right):
+        self.top_left = top_left
+        self.bottom_right = bottom_right
+        self.center_x = (bottom_right[0] + top_left[0]) / 2
+        self.center_y = (bottom_right[1] + top_left[1]) / 2
+
+    def card_positions(self, number_cards, quick = False):
+        pos = [int(self.center_x - self.width * (number_cards//2 + (0.5*((number_cards+1) % 2)) + (number_cards % 2)) + self.width * (i+1)) for i in range(number_cards)]
+        if pos[0] - self.width // 2 < self.top_left[0] or pos[-1] + self.width // 2 > self.bottom_right[0]:
+            if quick: return False
+            self.scale *= 0.85
+            return self.card_positions(number_cards)
+        if quick: return True
+        # check
+        self.override = True
+        self.override_scale = self.scale * 1.15
+        if self.override_scale > 1: self.override_scale = 1
+        if self.card_positions(number_cards, quick = True):
+            self.scale = self.override_scale
+        self.override = False
+        return pos
+
+    @property
+    def width(self):
+        if self.override: return self.override_scale * self.max_size
+        return self.scale * self.max_size
+
 
 class Table:
     def __init__(self, parent, opponent=False):
         self.parent = parent
         self.opponent = opponent
-        self.monsters = []
+        self.monsters_cards = []
         self.attacking_cards = []
         self.mana_cards = []
         self.hand = []
         self.opponents = {}
         self.picture_lookup = {}
+        self.bounding_boxes = {
+            "attacking_cards": CardBounding(), 
+            "mana_cards": CardBounding(),
+            "monsters_cards": CardBounding()
+        }
 
     def check_position(self, pos): 
         # returns a position closest on the playing field:
@@ -29,8 +75,8 @@ class Table:
         }
         return parameters
 
-    def _getmonsters(self):
-        return self.establish_cards(self.monsters)
+    def _getmonsters_cards(self):
+        return self.establish_cards(self.monsters_cards)
 
     def _getattacking_cards(self):
         return self.establish_cards(self.attacking_cards)
@@ -83,10 +129,48 @@ class Table:
         for opponent in self.opponents.keys():
             if self.opponents[opponent].delete(card_id=card_id): break
 
-    def move_card(self, card_id, destination):
-        if card_id in getattr(self, destination): return
+    def animate_cards(self, destination):
+        positions = self.bounding_boxes[destination].card_positions(len(getattr(self, destination)))
+        print(positions)
+        for ind, i in enumerate(getattr(self, destination)):
+            print("animate")
+            print(i, (positions[ind], self.bounding_boxes[destination].center_y))
+            animation = Animation(pos=(positions[ind], self.bounding_boxes[destination].center_y), t='out_back')
+            if self.picture_lookup[i].scale != self.bounding_boxes[destination].scale:
+                animation &= Animation(scale=self.bounding_boxes[destination].scale, t='in_out_cubic')
+            animation.start(self.picture_lookup[i])
+
+    def move_card(self, card_id, destination, cur_pos): #cur_pos [x, y]
+        if card_id in getattr(self, destination): 
+            # cards in stack
+            number_cards = len(getattr(self, destination))
+            if number_cards == 0: 
+                return
+            positions = self.bounding_boxes[destination].card_positions(number_cards)
+            print(positions, cur_pos, cur_pos[0])
+            card_found = False
+            for ind, i in enumerate(positions):
+                if getattr(self, destination)[ind] == card_id: card_found = True
+                if cur_pos[0] < i + self.bounding_boxes[destination].width // 2:
+                    # insert card at this position
+                    getattr(self, destination).insert(ind, card_id)
+                    if card_found: 
+                        getattr(self, destination).remove(card_id)
+                    else: 
+                        index = getattr(self, destination)[ind+1:].index(card_id)
+                        getattr(self, destination).pop(index+ind+1)
+                    break
+            else:
+                getattr(self, destination).append(card_id)
+                getattr(self, destination).remove(card_id)
+            self.animate_cards(destination)
+            # move cards to centers
+            # should we reorder cards
+            # cards do not change size
+            return
         self.delete(card_id=card_id, quick_return=True)
         getattr(self, destination).append(card_id)
+        self.animate_cards(destination)
         self.broadcast_cards()
 
     # opponent updates

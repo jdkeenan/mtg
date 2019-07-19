@@ -13,6 +13,7 @@ from kivy.logger import Logger
 from kivy.uix.scatter import Scatter
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
+from kivy.core.window import Window
 from kivy.properties import StringProperty
 from card_search import card_database_creation, card_creation
 from kivy.uix.boxlayout import BoxLayout
@@ -27,6 +28,9 @@ class PicturesApp(App):
     card_database = card_database_creation()
     card_reader = cv_card_reader()
     table = None
+
+    def check_resize(self, instance, x, y):
+        print("resize", x, y)
 
     def wrapper_create_card(self, name):
         self.create_card(name.text)
@@ -69,6 +73,7 @@ class PicturesApp(App):
         layout.add_widget(chatclient)
         layout.add_widget(button)
         self.root.add_widget(layout)
+        Window.bind(on_resize=self.check_resize)
 
     async def client_connection(self):
         try:
