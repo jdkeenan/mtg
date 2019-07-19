@@ -64,19 +64,17 @@ class Table:
         self.parent.root.add_widget(picture)
         self.picture_lookup[picture.card_id] = picture
         if summon_position is not None:
-            # print(summon_position)
-            # print(getattr(self, summon_position))
             getattr(self, summon_position).append(picture.card_id)
-            # print(getattr(self, summon_position))
 
 
-    def delete(self, payload=None, card_id=None):
+    def delete(self, payload=None, card_id=None, quick_return=False):
         if payload is not None: card_id = payload['card_id']
         # delete from the group
         lookup = self.get_parameters()
         for val in lookup.keys():
             if card_id in getattr(self, val):
                 getattr(self, val).remove(card_id)
+        if quick_return: return
         # delete from lookup
         if card_id in self.picture_lookup:
             self.picture_lookup[card_id].delete()
@@ -84,6 +82,12 @@ class Table:
             return True
         for opponent in self.opponents.keys():
             if self.opponents[opponent].delete(card_id=card_id): break
+
+    def move_card(self, card_id, destination):
+        if card_id in getattr(self, destination): return
+        self.delete(card_id=card_id, quick_return=True)
+        getattr(self, destination).append(card_id)
+        self.broadcast_cards()
 
     # opponent updates
     def opponent_update(self, opponent, payload):

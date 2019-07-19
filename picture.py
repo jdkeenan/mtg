@@ -14,10 +14,9 @@ class Picture(Scatter, object):
         super().__init__()
 
     def pre__on_touch_down(self, event):
-        if not self.opponent and self.card_id not in self.parent_object.table.attacking_cards:
-            print("attacking", self.card_id)
-            self.parent_object.table.attacking_cards.append(self.card_id)
-            self.parent_object.table.broadcast_cards()
+        # self.parent_object.table(self.card_id, 'attacking_cards')
+        if not self.opponent:
+            self.parent_object.table(self.card_id, 'attacking_cards')
 
     def post__on_touch_down(self, event):
         print("post")

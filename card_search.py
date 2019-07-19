@@ -28,7 +28,9 @@ class card_creation:
         self.card_database = card_database
         name = self.card_database.regex.sub('', name.lower())
         if name not in self.card_database.card_lookup:
-            name = difflib.get_close_matches(name, self.card_database.card_lookup.keys())[0]
+            matches = difflib.get_close_matches(name, self.card_database.card_lookup.keys())
+            if len(matches) == 0: return
+            name = matches[0]
         self.path = os.path.join('cards', name)
         self.name = name
         self.information = self.card_database.card_lookup[name]
@@ -44,7 +46,8 @@ class card_creation:
             if r.status_code != 200:
                 if name + '|' not in self.card_database.card_lookup:
                     print("failed to load card")
-                    return
+                    os.rmdir(self.path)
+                    return False
                 self.information = self.card_database.card_lookup[name + '|']
                 return self.download_card(name + '|')
             open(os.path.join(self.path, image) + self.ending(image), 'wb').write(r.content)
