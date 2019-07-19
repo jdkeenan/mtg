@@ -17,6 +17,7 @@ from kivy.core.window import Window
 from kivy.properties import StringProperty
 from card_search import card_database_creation, card_creation
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 from client import client_connection
 from cv_card_reader import cv_card_reader
 import random
@@ -31,6 +32,7 @@ class PicturesApp(App):
 
     def check_resize(self, instance, x, y):
         print("resize", x, y)
+        self.table.bounding_boxes['attacking_cards'].set_box([])
 
     def wrapper_create_card(self, name):
         self.create_card(name.text)
@@ -43,6 +45,10 @@ class PicturesApp(App):
         name = self.card_reader.grab_text()
         print(name)
         self.create_card(name)
+
+    def create_onepone(self, event=None):
+        opo = Picture(source='opo.png')
+        self.root.add_widget(opo)
 
     def create_card(self, name, summon_position=None, assigned_id=None):
         # card = card_creation(self.card_database, name)
@@ -73,6 +79,12 @@ class PicturesApp(App):
         layout.add_widget(chatclient)
         layout.add_widget(button)
         self.root.add_widget(layout)
+
+        buttonlayout = FloatLayout(size_hint=(None, None), height=50)
+        button_1p1 = Button(text="+1/+1", pos_hint={'center_x': 10, 'center_y': 10}, size_hint = (None,None))
+        button_1p1.bind(on_press = self.create_onepone)
+        buttonlayout.add_widget(button_1p1)
+
         Window.bind(on_resize=self.check_resize)
 
     async def client_connection(self):
