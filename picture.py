@@ -5,7 +5,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.button import Button
 
 class Picture(Scatter, object):
-    def __init__(self, source, parent_object, card, assigned_id=None, opponent=False):
+    def __init__(self, source, parent_object, card, assigned_id=None, opponent=False, tapped=False):
         if assigned_id is None: self.card_id = random.getrandbits(64)
         else: self.card_id = assigned_id
         self.source = source
@@ -13,7 +13,8 @@ class Picture(Scatter, object):
         self.name = card.name
         self.parent_object = parent_object
         self.opponent = opponent
-        self.tapped = False
+        self.tapped = tapped
+        self.tap_untap()
         super().__init__()
         self.do_rotation = False
         self.do_scale = False
@@ -26,13 +27,17 @@ class Picture(Scatter, object):
         self.parent_object.table.delete(card_id = self.card_id)
         self.popup.dismiss()
 
+    def tap_untap(self):
+        self.rotation = 0 if not self.tapped else 90
+
     # def pre__on_touch_down(self, event):
     def pre__on_touch_down(self, touch):            
         if not self.opponent and self.collide_point(*touch.pos):
             (pos_x, pos_y) = touch.pos
             if touch.is_double_tap:
-                self.rotation = 0 if self.rotation == 90 else 90
-                self.tapped = True
+                self.tapped = not self.tapped
+                if not self.opponent: self.parent_object.table.broadcast_cards()
+                self.tap_untap()
             if touch.button == 'right':
                 OK_button = Button(text='OK')
                 self.popup = Popup(content=OK_button, title='delete card?', pos=(self.y, self.x), size_hint=(None,None), size=(200,200))
@@ -66,5 +71,6 @@ class Picture(Scatter, object):
         parameters = {
             "card_id": self.card_id,
             "name": self.name,
+            "tapped": self.tapped
         }
         return parameters

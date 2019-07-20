@@ -141,9 +141,11 @@ class Table:
             if i == 'hand': continue
             for card in payload[i]:
                 if card['card_id'] not in self.picture_lookup:
-                    self.create_card(name=card['name'], summon_position=i, assigned_id=card['card_id'])
+                    self.create_card(name=card['name'], summon_position=i, assigned_id=card['card_id'], tapped=card['tapped'])
                 elif card['card_id'] not in getattr(self, i):
                     self.move_card(card['card_id'], i, [0,0])
+                self.picture_lookup[card['card_id']].tapped = card['tapped']
+                self.picture_lookup[card['card_id']].tap_untap()
                 payload_ids.append(card['card_id'])
         for i in list(self.picture_lookup.keys()):
             if i not in payload_ids:
@@ -151,10 +153,10 @@ class Table:
         # animate all cards
         self.animate_all_cards()
     
-    def create_card(self, name, summon_position=None, assigned_id=None):
+    def create_card(self, name, summon_position=None, assigned_id=None, tapped=None):
         card = card_creation(self.parent.card_database, name)
         picture = Picture(source=card.normal, parent_object=self.parent,
-                          card=card, assigned_id=assigned_id, opponent=self.opponent)
+                          card=card, assigned_id=assigned_id, opponent=self.opponent, tapped=tapped)
         self.parent.root.add_widget(picture)
         self.picture_lookup[picture.card_id] = picture
         if summon_position is not None:
