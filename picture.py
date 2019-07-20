@@ -11,44 +11,43 @@ class Picture(Scatter, object):
         self.source = source
         self.card = card
         self.name = card.name
-        self.cpos = [None, None]
         self.parent_object = parent_object
         self.opponent = opponent
+        self.tapped = False
         super().__init__()
+        self.do_rotation = False
+        self.do_scale = False
 
-    def delete(self, event):
-        try:
-            self.parent.remove_widget(self)
-        except:
-            pass
+    def delete(self):
+        # import pdb; pdb.set_trace()
+        self.parent.remove_widget(self)
+
+    def delete_button(self, event):
+        self.parent_object.table.delete(card_id = self.card_id)
+        self.popup.dismiss()
 
     # def pre__on_touch_down(self, event):
-    def pre__on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
+    def pre__on_touch_down(self, touch):            
+        if not self.opponent and self.collide_point(*touch.pos):
             (pos_x, pos_y) = touch.pos
             if touch.is_double_tap:
                 self.rotation = 0 if self.rotation == 90 else 90
+                self.tapped = True
             if touch.button == 'right':
                 OK_button = Button(text='OK')
-                popup = Popup(content=OK_button, title='delete card?', pos=(pos_x, pos_y), size_hint=(None,None), size=(200,200))
-                OK_button.bind(on_press=self.delete)
-                popup.open()
-                # return True
+                self.popup = Popup(content=OK_button, title='delete card?', pos=(self.y, self.x), size_hint=(None,None), size=(200,200))
+                OK_button.bind(on_press=self.delete_button)
+                self.popup.open()
+                return True
 
-    def post__on_touch_down(self, event):
-        if not self.collide_point(*event.pos):
-            return
-        print("post")
-
-    # def pre__on_touch_up(self, event):
-    #     print('up')
+    def post__on_touch_down(self, touch):
+        if not self.collide_point(*touch.pos): return
+        
     def post__on_touch_up(self, event):
         if not self.collide_point(*event.pos):
             return
         if not self.opponent:
-            self.parent_object.table.move_card(self.card_id, 'attacking_cards', event.pos)
-        print(event)
-        print("card moved")
+            self.parent_object.table.check_position(self.card_id, event.pos)
 
     def __getattribute__(self, name):
         if name.startswith('pre__') or name.startswith('post__'): 

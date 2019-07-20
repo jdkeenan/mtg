@@ -2,6 +2,8 @@ import asyncio
 import os
 
 os.environ['KIVY_EVENTLOOP'] = 'asyncio'
+from kivy.config import Config
+Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 import kivy
 kivy.require('1.0.6')
 
@@ -32,19 +34,39 @@ class PicturesApp(App):
 
     def check_resize(self, instance, x, y):
         print("resize", x, y)
-        self.table.bounding_boxes['attacking_cards'].set_box([])
+        self.table.bounding_boxes['hand'].set_box(
+            [int(x*0.5), int(50)],
+            [int(x), int(y*0.2)],
+        )
+        self.table.bounding_boxes['mana_cards'].set_box(
+            [int(0), int(50)],
+            [int(x*0.5), int(y*0.2)]
+        )
+        self.table.bounding_boxes['monsters_cards'].set_box(
+            [int(0), int(y*0.2)],
+            [int(x), int(y*0.4)]
+        )
+        self.table.bounding_boxes['attacking_cards'].set_box(
+            [int(0), int(y*0.4)],
+            [int(x), int(y*0.6)]
+        )
+        self.current_width = x
+        self.current_height = y
+        self.table.update_opponent_bounding_boxes()
+        self.table.animate_all_cards()
+        self.root.canvas.ask_update()
 
     def wrapper_create_card(self, name):
-        self.create_card(name.text)
+        card_id = self.create_card(name.text)
+        self.table.move_card(card_id, 'hand', [Window.width, Window.height])
 
     def wrapper_send_message(self, name):
         self.conn.writer_tcp(name.text)
 
     def wrapper_create_card_from_camera(self, event):
-        print(event)
         name = self.card_reader.grab_text()
-        print(name)
-        self.create_card(name)
+        card_id = self.create_card(name)
+        self.table.move_card(card_id, 'hand', [Window.width, Window.height])
 
     def create_onepone(self, event=None):
         opo = Picture(source='opo.png')
@@ -52,21 +74,20 @@ class PicturesApp(App):
 
     def create_card(self, name, summon_position=None, assigned_id=None):
         # card = card_creation(self.card_database, name)
-        self.table.create_card(name=name, summon_position=None, assigned_id=None)
+        return self.table.create_card(name=name, summon_position=None, assigned_id=None)
 
     def app_func(self):
-        self.other_task = asyncio.ensure_future(self.client_connection())
-
         async def run_wrapper():
             await self.async_run()
             print('App done')
             self.card_reader.close()
             self.other_task.cancel()
 
-        return asyncio.gather(run_wrapper(), self.other_task)
+        return asyncio.gather(run_wrapper(), self.client_connection())
 
     def build(self):
         self.table = Table(self)
+        self.check_resize(None, Window.width, Window.height)
         textinput = TextInput(text='Card Name', multiline=False)
         textinput.bind(on_text_validate=self.wrapper_create_card)
         chatclient = TextInput(text='Chat', multiline=False)
@@ -90,9 +111,12 @@ class PicturesApp(App):
     async def client_connection(self):
         try:
             await self.conn.establish_connection()
+            await asyncio.sleep(1)
+            self.conn.writer_tcp('create_a_room mtg mtg')
+            await asyncio.sleep(1)
             self.conn.writer_tcp('join_a_room mtg mtg')
             await asyncio.sleep(1)
-            self.conn.writer_tcp('username mtg_test')
+            self.conn.writer_tcp('username mtg{}'.format(random.getrandbits(5)))
             await self.conn.reader_tcp(self.incoming_message)
         except asyncio.CancelledError as e:
             pass

@@ -29,7 +29,7 @@ class client_connection:
 
     async def reader_tcp(self, call_back):
         while True:
-            data = await self.reader.read(4096)
+            data = await self.reader.read(10000)
             call_back(data.decode())
 
     def close(self):
@@ -42,7 +42,7 @@ if __name__ == '__main__':
         reader, writer = await asyncio.open_connection('3.90.36.188', 8080)
         async def reader_tcp():
             while True:
-                data = await reader.read(4096)
+                data = await reader.read(10000)
                 print(data)
         async def writer_tcp():
             while True:

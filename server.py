@@ -90,7 +90,7 @@ class client_information:
         request = None
         try:
             while True:
-                    request = (await self.reader.read(255)).decode('utf-8')
+                    request = (await self.reader.read(10000)).decode('utf-8')
                     if request == '': break
                     actions = request.split(' ')
                     if actions[0] in self.server.server_actions:
@@ -115,7 +115,10 @@ class client_information:
     def exit(self):
         self.server.exit_room(self, actions = None, write = False)
         if self.user_name is not None:
-            del self.server.users[self.user_name]
+            try:
+                del self.server.users[self.user_name]
+            except:
+                pass
         self.writer.close()
 
 
