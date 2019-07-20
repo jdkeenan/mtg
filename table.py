@@ -175,6 +175,7 @@ class Table:
                 break
         if quick_return: return
         # delete from lookup
+        self.broadcast_cards()
         if card_id in self.picture_lookup:
             self.picture_lookup[card_id].delete()
             del self.picture_lookup[card_id]
