@@ -22,6 +22,7 @@ class card_database_creation:
             name = self.regex.sub('', card['name'].lower())
             while name in self.card_lookup:
                 name += '|'
+            if len(name) < 2: continue
             self.card_lookup[name] = card
         if not os.path.isdir('cards'):
             os.mkdir('cards')
@@ -41,6 +42,7 @@ class card_creation:
         self.card_images = {}
         if not os.path.isdir(self.path): # download the pngs
             os.mkdir(self.path)
+        if not os.path.isfile(os.path.join(self.path, 'normal.jpg')):
             self.download_card(name)
 
     def download_card(self, name):
@@ -51,8 +53,10 @@ class card_creation:
             r = requests.get(url, allow_redirects=True)
             if r.status_code != 200:
                 if name + '|' not in self.card_database.card_lookup:
-                    print("failed to load card")
-                    os.rmdir(self.path)
+                    try:
+                        os.rmdir(self.path)
+                    except Exception as e:
+                        print(e)
                     return False
                 self.information = self.card_database.card_lookup[name + '|']
                 return self.download_card(name + '|')
@@ -85,7 +89,9 @@ if __name__ == '__main__':
     thread_chunk = []
     jobs = []
     card_database = card_database_creation()
-    diff = set(card_database.card_lookup) - set(glob.glob(os.path.join('cards', '*')))
+    directories = [directory.split('/')[1] for directory in glob.glob(os.path.join('cards', '*', '*'))]
+    diff = set([card for card in card_database.card_lookup.keys() if card[-1] != '|']) - set(directories)
+    print(len(diff))
     for card_name in diff:
         if len(card_name) == 0: continue
         if card_name[-1] == '|': continue
@@ -94,11 +100,7 @@ if __name__ == '__main__':
     card_list = sorted(card_list)
     for i in range(0, len(card_list), increment):
         thread_chunk.append(card_list[i:i+increment])
-    print(thread_chunk)
-    for i in range(0, threads):
-        print(thread_chunk[i])
     for i in range(0, len(thread_chunk)):
-        print(thread_chunk[i])
         out_list = list()
         thread = threading.Thread(target=all_the_cards, kwargs={'diff': thread_chunk[i]})
         jobs.append(thread)
