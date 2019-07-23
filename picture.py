@@ -3,6 +3,8 @@ from kivy.uix.boxlayout import BoxLayout
 import random
 from kivy.uix.popup import Popup
 from kivy.uix.button import Button
+from kivy.animation import Animation
+import time
 
 class Picture(Scatter, object):
     def __init__(self, source, parent_object, card, assigned_id=None, opponent=False, tapped=False):
@@ -18,6 +20,9 @@ class Picture(Scatter, object):
         super().__init__()
         self.do_rotation = False
         self.do_scale = False
+        self.time = time.time()
+        self.previous_small_pos = None
+        self.big = False
 
     def delete(self):
         # import pdb; pdb.set_trace()
@@ -35,6 +40,7 @@ class Picture(Scatter, object):
         if not self.opponent and self.collide_point(*touch.pos):
             (pos_x, pos_y) = touch.pos
             if touch.is_double_tap:
+                if len(self.parent_object.event_loop) > 1: self.parent_object.event_loop.pop(-1)
                 self.tapped = not self.tapped
                 if not self.opponent: self.parent_object.table.broadcast_cards()
                 self.tap_untap()
@@ -44,15 +50,38 @@ class Picture(Scatter, object):
                 OK_button.bind(on_press=self.delete_button)
                 self.popup.open()
                 return True
+        self.time = time.time()
 
     def post__on_touch_down(self, touch):
+        if not self.collide_point(*touch.pos): return
+
+    def pre__on_touch_up(self, touch):
         if not self.collide_point(*touch.pos): return
         
     def post__on_touch_up(self, event):
         if not self.collide_point(*event.pos):
             return
+        print(time.time() - self.time)
         if not self.opponent:
             self.parent_object.table.check_position(self.card_id, event.pos)
+
+        if (time.time() - self.time) < 0.25:
+            print("running")
+            # if not self.big:
+            #     print("BIGGLY")
+            #     self.big = True
+            #     # self.previous_small_pos = [self.x, self.y, self.scale]
+            if len(self.parent_object.event_loop) == 0:
+                self.parent_object.event_loop.append([time.time(), 2, self.parent_object.current_width//2 , self.parent_object.current_height//2, self])
+            # animation = Animation(pos=(self.parent_object.current_width//2, self.parent_object.current_height//2), t='out_back')
+            # animation &= Animation(scale=2, t='in_out_cubic')
+            # animation.start(self)
+            # else:
+            #     self.big = False
+                # animation = Animation(pos=(self.previous_small_pos[0], self.previous_small_pos[1]), t='out_back')
+                # animation &= Animation(scale=self.previous_small_pos[2], t='in_out_cubic')
+                # animation.start(self)
+        
 
     def __getattribute__(self, name):
         if name.startswith('pre__') or name.startswith('post__'): 

@@ -53,10 +53,6 @@ class card_creation:
             r = requests.get(url, allow_redirects=True)
             if r.status_code != 200:
                 if name + '|' not in self.card_database.card_lookup:
-                    try:
-                        os.rmdir(self.path)
-                    except Exception as e:
-                        print(e)
                     return False
                 self.information = self.card_database.card_lookup[name + '|']
                 return self.download_card(name + '|')

@@ -25,12 +25,16 @@ from cv_card_reader import cv_card_reader
 import random
 from table import Table
 from picture import Picture
+from deck import Deck
+from kivy.animation import Animation
+import time
 
 class PicturesApp(App):
     conn = client_connection()
     card_database = card_database_creation()
     card_reader = cv_card_reader()
     table = None
+    deck = None
 
     def check_resize(self, instance, x, y):
         print("resize", x, y)
@@ -55,9 +59,11 @@ class PicturesApp(App):
         self.table.update_opponent_bounding_boxes()
         self.table.animate_all_cards()
         self.root.canvas.ask_update()
+        self.event_loop = []
 
     def wrapper_create_card(self, name):
-        card_id = self.create_card(name.text)
+        if not isinstance(name, str): name = name.text
+        card_id = self.create_card(name)
         self.table.move_card(card_id, 'hand', [Window.width, Window.height])
 
     def wrapper_send_message(self, name):
@@ -85,6 +91,14 @@ class PicturesApp(App):
 
         return asyncio.gather(run_wrapper(), self.client_connection())
 
+    def deck_next_card(self, event):
+        if self.deck is None:
+            self.deck = Deck()
+            for i in self.deck.load_hand():
+                self.wrapper_create_card(i)
+        else:
+           self.wrapper_create_card(self.deck.load_card())
+
     def build(self):
         self.table = Table(self)
         self.check_resize(None, Window.width, Window.height)
@@ -94,11 +108,14 @@ class PicturesApp(App):
         chatclient.bind(on_text_validate=self.wrapper_send_message)
         button = Button(text='grab card from camera', font_size=14)
         button.bind(on_press=self.wrapper_create_card_from_camera)
+        deck = Button(text='grab card from virtual decks', font_size=14)
+        deck.bind(on_press=self.deck_next_card)
 
         layout = BoxLayout(size_hint=(1, None), height=50)
         layout.add_widget(textinput)
         layout.add_widget(chatclient)
         layout.add_widget(button)
+        layout.add_widget(deck)
         self.root.add_widget(layout)
 
         buttonlayout = FloatLayout(size_hint=(None, None), height=50)
@@ -112,16 +129,37 @@ class PicturesApp(App):
         try:
             await self.conn.establish_connection()
             await asyncio.sleep(1)
-            self.conn.writer_tcp('create_a_room mtg mtg')
-            await asyncio.sleep(1)
-            self.conn.writer_tcp('join_a_room mtg mtg')
-            await asyncio.sleep(1)
-            self.conn.writer_tcp('username mtg{}'.format(random.getrandbits(5)))
-            await self.conn.reader_tcp(self.incoming_message)
+
+            async def connection():
+                await asyncio.sleep(1)
+                self.conn.writer_tcp('create_a_room mtg mtg')
+                await asyncio.sleep(1)
+                self.conn.writer_tcp('join_a_room mtg mtg')
+                await asyncio.sleep(1)
+                self.conn.writer_tcp('username mtg{}'.format(random.getrandbits(10)))
+                await asyncio.sleep(1)
+                while True:
+                    await asyncio.sleep(5)
+                    self.table.broadcast_cards()
+
+            async def card_watcher():
+                while True:
+                    print(self.event_loop)
+                    if len(self.event_loop) > 0 and self.event_loop[0][0] + 0.3 < time.time():
+                        # [time.time(), 2, self.parent_object.current_width//2, self.parent_object.current_height//2, self]
+                        animation = Animation(pos=(self.event_loop[0][2], self.event_loop[0][3]), t='out_back')
+                        animation &= Animation(scale=self.event_loop[0][1], t='in_out_cubic')
+                        animation.start(self.event_loop[0][-1])
+                        self.event_loop.pop(0)
+                    await asyncio.sleep(0.5)
+
+            await asyncio.gather(connection(), card_watcher(), self.conn.reader_tcp(self.incoming_message))
+
         except asyncio.CancelledError as e:
             pass
 
     def incoming_message(self, message):
+        print(message)
         text = " ".join(message.split(' ')[1:])
         if text.startswith('create_a_card'):
             self.create_card(" ".join(text.split(' ')[1:]))
