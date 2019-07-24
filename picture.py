@@ -40,7 +40,10 @@ class Picture(Scatter, object):
         if not self.opponent and self.collide_point(*touch.pos):
             (pos_x, pos_y) = touch.pos
             if touch.is_double_tap:
-                if len(self.parent_object.event_loop) > 1: self.parent_object.event_loop.pop(-1)
+                if len(self.parent_object.event_loop) > 0: 
+                    self.big = False
+                    print(self.parent_object.event_loop)
+                    self.parent_object.event_loop = []
                 self.tapped = not self.tapped
                 if not self.opponent: self.parent_object.table.broadcast_cards()
                 self.tap_untap()
@@ -61,26 +64,20 @@ class Picture(Scatter, object):
     def post__on_touch_up(self, event):
         if not self.collide_point(*event.pos):
             return
-        print(time.time() - self.time)
-        if not self.opponent:
-            self.parent_object.table.check_position(self.card_id, event.pos)
-
+        if event.is_double_tap: return
         if (time.time() - self.time) < 0.25:
-            print("running")
-            # if not self.big:
-            #     print("BIGGLY")
-            #     self.big = True
-            #     # self.previous_small_pos = [self.x, self.y, self.scale]
             if len(self.parent_object.event_loop) == 0:
-                self.parent_object.event_loop.append([time.time(), 2, self.parent_object.current_width//2 , self.parent_object.current_height//2, self])
-            # animation = Animation(pos=(self.parent_object.current_width//2, self.parent_object.current_height//2), t='out_back')
-            # animation &= Animation(scale=2, t='in_out_cubic')
-            # animation.start(self)
-            # else:
-            #     self.big = False
-                # animation = Animation(pos=(self.previous_small_pos[0], self.previous_small_pos[1]), t='out_back')
-                # animation &= Animation(scale=self.previous_small_pos[2], t='in_out_cubic')
-                # animation.start(self)
+                if self.big is False:
+                    self.big = True
+                    self.previous_small_pos = [self.scale, self.x, self.y]
+                    self.parent_object.event_loop.append([time.time(), 2, self.parent_object.current_width//2 - 400 , self.parent_object.current_height//2 - 557.3770491803278, self])
+                else:
+                    self.big = False
+                    self.parent_object.event_loop.append([time.time(), *self.previous_small_pos, self])
+        else:
+            self.big = False
+            if not self.opponent:
+                self.parent_object.table.check_position(self.card_id, event.pos)
         
 
     def __getattribute__(self, name):

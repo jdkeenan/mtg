@@ -58,7 +58,7 @@ class PicturesApp(App):
         self.current_height = y
         self.table.update_opponent_bounding_boxes()
         self.table.animate_all_cards()
-        self.root.canvas.ask_update()
+        # self.root.canvas.ask_update()
         self.event_loop = []
 
     def wrapper_create_card(self, name):
@@ -144,14 +144,13 @@ class PicturesApp(App):
 
             async def card_watcher():
                 while True:
-                    print(self.event_loop)
-                    if len(self.event_loop) > 0 and self.event_loop[0][0] + 0.3 < time.time():
+                    if len(self.event_loop) > 0 and self.event_loop[0][0] + 0.2 < time.time():
                         # [time.time(), 2, self.parent_object.current_width//2, self.parent_object.current_height//2, self]
-                        animation = Animation(pos=(self.event_loop[0][2], self.event_loop[0][3]), t='out_back')
-                        animation &= Animation(scale=self.event_loop[0][1], t='in_out_cubic')
+                        animation = Animation(pos=(self.event_loop[0][2], self.event_loop[0][3]), t='out_back', duration=0.25)
+                        animation &= Animation(scale=self.event_loop[0][1], t='in_out_cubic', duration=0.25)
                         animation.start(self.event_loop[0][-1])
                         self.event_loop.pop(0)
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.1)
 
             await asyncio.gather(connection(), card_watcher(), self.conn.reader_tcp(self.incoming_message))
 
