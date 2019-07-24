@@ -94,28 +94,16 @@ if __name__ == '__main__':
         if len(card_name) == 0: continue
         if card_name[-1] == '|': continue
         card_list.append(card_name)
-    increment = int(len(card_list) / threads)
-    card_list = sorted(card_list)
-    for i in range(0, len(card_list), increment):
-        thread_chunk.append(card_list[i:i+increment])
-    for i in range(0, len(thread_chunk)):
-        out_list = list()
-        thread = threading.Thread(target=all_the_cards, kwargs={'diff': thread_chunk[i]})
-        jobs.append(thread)
-    for j in jobs:
-        j.start()
-    for j in jobs:
-        j.join()
-
-#    card_database = card_database_creation()
-#    diff = set(card_database.card_lookup) - set(glob.glob(os.path.join('cards', '*')))
-#    for card_name in diff:
-#        if len(card_name) == 0: continue
-#        if card_name[-1] == '|': continue
-#        card = card_creation(card_database, card_name)
-#        jobs.append(thread)
-#        print(card_name)
-    
-    #card = card_creation(card_database, 'OjotaiSoalofWlnter')
-    #cv2.imshow('img', cv2.imread(card.png))
-    #cv2.waitKey(0)
+    if len(card_list) != 0:
+        increment = int(len(card_list) / threads)
+        card_list = sorted(card_list)
+        for i in range(0, len(card_list), increment):
+            thread_chunk.append(card_list[i:i+increment])
+        for i in range(0, len(thread_chunk)):
+            out_list = list()
+            thread = threading.Thread(target=all_the_cards, kwargs={'diff': thread_chunk[i]})
+            jobs.append(thread)
+        for j in jobs:
+            j.start()
+        for j in jobs:
+            j.join()
