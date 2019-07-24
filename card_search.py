@@ -19,6 +19,7 @@ class card_database_creation:
             temp_card_lookup = json.load(f)
         self.card_lookup = {}
         for card in temp_card_lookup:
+            if 'image_uris' not in card: continue
             name = self.regex.sub('', card['name'].lower())
             while name in self.card_lookup:
                 name += '|'
@@ -52,6 +53,7 @@ class card_creation:
             url = self.information['image_uris'][image]
             r = requests.get(url, allow_redirects=True)
             if r.status_code != 200:
+                print(r.status_code, r, name)
                 if name + '|' not in self.card_database.card_lookup:
                     return False
                 self.information = self.card_database.card_lookup[name + '|']
