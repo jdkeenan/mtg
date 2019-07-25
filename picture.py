@@ -3,6 +3,8 @@ from kivy.uix.boxlayout import BoxLayout
 import random
 from kivy.uix.popup import Popup
 from kivy.uix.button import Button
+from kivy.animation import Animation
+import time
 
 class Picture(Scatter, object):
     def __init__(self, source, parent_object, card, assigned_id=None, opponent=False, tapped=False):
@@ -18,6 +20,9 @@ class Picture(Scatter, object):
         super().__init__()
         self.do_rotation = False
         self.do_scale = False
+        self.time = time.time()
+        self.previous_small_pos = None
+        self.big = False
 
     def delete(self):
         # import pdb; pdb.set_trace()
@@ -35,6 +40,10 @@ class Picture(Scatter, object):
         if not self.opponent and self.collide_point(*touch.pos):
             (pos_x, pos_y) = touch.pos
             if touch.is_double_tap:
+                if len(self.parent_object.event_loop) > 0: 
+                    self.big = False
+                    print(self.parent_object.event_loop)
+                    self.parent_object.event_loop = []
                 self.tapped = not self.tapped
                 if not self.opponent: self.parent_object.table.broadcast_cards()
                 self.tap_untap()
@@ -44,15 +53,32 @@ class Picture(Scatter, object):
                 OK_button.bind(on_press=self.delete_button)
                 self.popup.open()
                 return True
+        self.time = time.time()
 
     def post__on_touch_down(self, touch):
+        if not self.collide_point(*touch.pos): return
+
+    def pre__on_touch_up(self, touch):
         if not self.collide_point(*touch.pos): return
         
     def post__on_touch_up(self, event):
         if not self.collide_point(*event.pos):
             return
-        if not self.opponent:
-            self.parent_object.table.check_position(self.card_id, event.pos)
+        if event.is_double_tap: return
+        if (time.time() - self.time) < 0.25:
+            if len(self.parent_object.event_loop) == 0:
+                if self.big is False:
+                    self.big = True
+                    self.previous_small_pos = [self.scale, self.x, self.y]
+                    self.parent_object.event_loop.append([time.time(), 2, self.parent_object.current_width//2 - 400 , self.parent_object.current_height//2 - 557.3770491803278, self])
+                else:
+                    self.big = False
+                    self.parent_object.event_loop.append([time.time(), *self.previous_small_pos, self])
+        else:
+            self.big = False
+            if not self.opponent:
+                self.parent_object.table.check_position(self.card_id, event.pos)
+        
 
     def __getattribute__(self, name):
         if name.startswith('pre__') or name.startswith('post__'): 

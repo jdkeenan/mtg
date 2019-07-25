@@ -87,6 +87,7 @@ class Table:
             "monsters_cards": CardBounding(self.parent, "monsters_cards"),
             "hand": CardBounding(self.parent, "hand")
         }
+        self.past_payload = None
 
     def check_position(self, card_id, pos):
         # print(pos, pos[0], pos[1])
@@ -135,6 +136,8 @@ class Table:
             payload = ast.literal_eval(payload)
         except:
             return
+        if payload == self.past_payload: return
+        self.past_payload = payload
         # find cards that need to be deleted or added
         payload_ids = []
         for i in payload.keys():
@@ -190,10 +193,12 @@ class Table:
             animation = Animation(pos=(positions[ind]-self.bounding_boxes[destination].width//2, self.bounding_boxes[destination].center_y-self.bounding_boxes[destination].height//2), t='out_back')
             if self.picture_lookup[i].scale != self.bounding_boxes[destination].scale:
                 animation &= Animation(scale=self.bounding_boxes[destination].scale, t='in_out_cubic')
+            self.picture_lookup[i].big = False
             animation.start(self.picture_lookup[i])
 
     def animate_all_cards(self):
         for val in self.get_parameters().keys():
+
             self.animate_cards(val)
 
     def move_card(self, card_id, destination, cur_pos): #cur_pos [x, y]

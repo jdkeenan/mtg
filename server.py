@@ -90,8 +90,15 @@ class client_information:
         request = None
         try:
             while True:
-                    request = (await self.reader.read(10000)).decode('utf-8')
-                    if request == '': break
+                    request = ""
+                    while True:
+                        packet = (await self.reader.read(1000)).decode('utf-8')
+                        if packet == '': break
+                        request += packet
+                        if request.endswith('\n'): 
+                            request = request[:-1]
+                            break
+                    if packet == '': break
                     actions = request.split(' ')
                     if actions[0] in self.server.server_actions:
                         getattr(self.server, actions[0])(self, actions)

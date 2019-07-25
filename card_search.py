@@ -19,6 +19,7 @@ class card_database_creation:
             temp_card_lookup = json.load(f)
         self.card_lookup = {}
         for card in temp_card_lookup:
+            if 'image_uris' not in card: continue
             name = self.regex.sub('', card['name'].lower())
             while name in self.card_lookup:
                 name += '|'
@@ -52,11 +53,8 @@ class card_creation:
             url = self.information['image_uris'][image]
             r = requests.get(url, allow_redirects=True)
             if r.status_code != 200:
+                print(r.status_code, r, name)
                 if name + '|' not in self.card_database.card_lookup:
-                    try:
-                        os.rmdir(self.path)
-                    except Exception as e:
-                        print(e)
                     return False
                 self.information = self.card_database.card_lookup[name + '|']
                 return self.download_card(name + '|')
@@ -96,28 +94,16 @@ if __name__ == '__main__':
         if len(card_name) == 0: continue
         if card_name[-1] == '|': continue
         card_list.append(card_name)
-    increment = int(len(card_list) / threads)
-    card_list = sorted(card_list)
-    for i in range(0, len(card_list), increment):
-        thread_chunk.append(card_list[i:i+increment])
-    for i in range(0, len(thread_chunk)):
-        out_list = list()
-        thread = threading.Thread(target=all_the_cards, kwargs={'diff': thread_chunk[i]})
-        jobs.append(thread)
-    for j in jobs:
-        j.start()
-    for j in jobs:
-        j.join()
-
-#    card_database = card_database_creation()
-#    diff = set(card_database.card_lookup) - set(glob.glob(os.path.join('cards', '*')))
-#    for card_name in diff:
-#        if len(card_name) == 0: continue
-#        if card_name[-1] == '|': continue
-#        card = card_creation(card_database, card_name)
-#        jobs.append(thread)
-#        print(card_name)
-    
-    #card = card_creation(card_database, 'OjotaiSoalofWlnter')
-    #cv2.imshow('img', cv2.imread(card.png))
-    #cv2.waitKey(0)
+    if len(card_list) != 0:
+        increment = int(len(card_list) / threads)
+        card_list = sorted(card_list)
+        for i in range(0, len(card_list), increment):
+            thread_chunk.append(card_list[i:i+increment])
+        for i in range(0, len(thread_chunk)):
+            out_list = list()
+            thread = threading.Thread(target=all_the_cards, kwargs={'diff': thread_chunk[i]})
+            jobs.append(thread)
+        for j in jobs:
+            j.start()
+        for j in jobs:
+            j.join()
